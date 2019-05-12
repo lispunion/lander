@@ -1,0 +1,203 @@
+(cond-expand
+  (chibi
+   (import (scheme base)
+           (scheme char)
+           (scheme file)
+           (scheme cxr)
+           (scheme read)
+           (scheme write)
+           (srfi 1)
+           (srfi 69)
+           (chibi filesystem)))
+  (gauche
+   (use srfi-1)
+   (use srfi-69)
+   (use file.util)))
+
+;;;;
+
+(define (show x)
+  (write x (current-error-port))
+  (newline (current-error-port))
+  x)
+
+(define (tab . xs)
+  (let ((ht (make-hash-table)))
+    (let loop ((xs xs))
+      (cond ((null? xs) ht)
+            (else (hash-table-set! ht (car xs) (cadr xs))
+                  (loop (cddr xs)))))))
+
+(define (maptab fun xs)
+  (let ((ht (make-hash-table)))
+    (let loop ((xs xs))
+      (if (null? xs)
+          ht
+          (let ((pair (fun (car xs))))
+            (hash-table-set! ht (car pair) (cdr pair))
+            (loop (cdr xs)))))))
+
+(define (path-join . strings)
+  (if (null? strings)
+      ""
+      (fold (lambda (s so-far) (string-append so-far "/" s))
+            (car strings)
+            (cdr strings))))
+
+(define (map-string-chars transform-char s)
+  (let loop ((chars '()) (cs (string->list s)))
+    (if (null? cs)
+        (list->string chars)
+        (loop (append chars (list (transform-char (car cs))))
+              (cdr cs)))))
+
+;;;;
+
+(define (line . xs)
+  (for-each display xs)
+  (newline))
+
+(define (indented-line nest . xs)
+  (display (make-string (* 2 nest) #\space))
+  (apply line xs))
+
+(define (yaml-simple? x)
+  (not (or (hash-table? x) (list? x))))
+
+(define (yaml-object x nest)
+  (cond ((list? x)
+         (for-each (lambda (val)
+                     (if (yaml-simple? val)
+                         (indented-line nest "- " val)
+                         (begin (indented-line nest "- ")
+                                (yaml-object val (+ nest 1)))))
+                   x))
+        ((hash-table? x)
+         (hash-table-walk
+          x (lambda (key val)
+              (let ((key key))
+                (if (yaml-simple? val)
+                    (indented-line nest key ": " val)
+                    (begin (indented-line nest key ":")
+                           (yaml-object val (+ nest 1))))))))))
+
+(define (yaml-document x)
+  (line "---")
+  (yaml-object x 0))
+
+;;;;
+
+(define (object? x)
+  (and (list? x)
+       (symbol? (car x))))
+
+(define (the-object head x)
+  (unless (and (object? x) (equal? head (car x)))
+    (error (string-append "Not " (symbol->string head) " object")))
+  (cdr x))
+
+(define (complex-property x name)
+  (let ((pair (assoc name x)))
+    (and pair
+         (begin (unless (list? pair) (error "Bad property"))
+                (cdr pair)))))
+
+(define (simple-property x name predicate)
+  (let ((pair (assoc name x)))
+    (and pair
+         (begin (unless (and (list? pair)
+                             (null? (cddr pair))
+                             (predicate (cadr pair)))
+                  (error "Bad property"))
+                (cadr pair)))))
+
+(define (char->identifier-char c)
+  (if (or (char-alphabetic? c) (char-numeric? c)) c #\_))
+
+(define (identifier x)
+  (map-string-chars char->identifier-char
+                    (if (string? x) x (symbol->string x))))
+
+;;;;
+
+(define (gen-ansible-cfg options)
+  (with-output-to-file "ansible.cfg"
+    (lambda ()
+      (line "[defaults]")
+      (line "inventory = hosts.yml")
+      (for-each (lambda (var)
+                  (let* ((var (the-object 'var var))
+                         (name (car var))
+                         (value (cadr var)))
+                    (line (identifier name) " = " value)))
+                options))))
+
+(define (gen-hosts-yml-vars vars)
+  (maptab (lambda (var)
+            (let ((var (the-object 'var var)))
+              (cons (identifier (first var))
+                    (second var))))
+          vars))
+
+(define (gen-hosts-yml-group-hosts hosts)
+  (maptab (lambda (host)
+            (let ((host (the-object 'host host)))
+              (cons (simple-property host 'name symbol?)
+                    (gen-hosts-yml-vars
+                     (complex-property host 'vars)))))
+          hosts))
+
+(define (gen-hosts-yml groups)
+  (with-output-to-file "hosts.yml"
+    (lambda ()
+      (yaml-document
+       (maptab (lambda (group)
+                 (let ((group (the-object 'group group)))
+                   (cons (simple-property group 'name symbol?)
+                         (tab 'hosts
+                              (gen-hosts-yml-group-hosts
+                               (complex-property group 'hosts))
+                              'vars
+                              (gen-hosts-yml-vars
+                               (complex-property group 'vars))))))
+               groups)))))
+
+(define (gen-task-hash-table task)
+  (maptab (lambda (subtask)
+            (cons (car subtask) (second subtask)))
+          (cdr task)))
+
+(define (gen-role-directory role)
+  (let* ((role (the-object 'role role))
+         (role-name (simple-property role 'name symbol?))
+         (tasks (path-join "roles" (identifier role-name) "tasks")))
+    (create-directory* tasks)
+    (with-output-to-file (path-join tasks "main.yml")
+      (lambda ()
+        (yaml-document
+         (map (lambda (task)
+                (let* ((task (the-object 'task task))
+                       (job (second task)))
+                  (tab 'name (simple-property task 'title string?)
+                       (car job) (gen-task-hash-table job))))
+              (complex-property role 'tasks)))))))
+
+(define (gen-playbook-yml playbook)
+  (let ((playbook (the-object 'playbook playbook)))
+    (with-output-to-file
+        (string-append (identifier (simple-property playbook 'name symbol?))
+                       ".yml")
+      (lambda ()
+        (yaml-document
+         (tab 'hosts (complex-property playbook 'hosts)
+              'become (simple-property playbook 'become symbol?)
+              'roles (complex-property playbook 'roles)))))))
+
+(define (gen-ansible form)
+  (let ((ansible (the-object 'ansible form)))
+    (gen-ansible-cfg (complex-property ansible 'options))
+    (gen-hosts-yml (complex-property ansible 'groups))
+    (for-each gen-role-directory (complex-property ansible 'roles))
+    (for-each gen-playbook-yml (complex-property ansible 'playbooks))))
+
+(gen-ansible (read))
