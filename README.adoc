@@ -1,0 +1,9 @@
+= Lander
+
+Lander generates a complete Ansible configuration from a Lisp form.
+How you obtain the Lisp form is up to you. You can write it by hand or
+use your favorite Lisp dialect to generate it.
+
+The name was inspired by space exploration and Lisp's mascot, the
+alien. Ansible generates scripts and lands them on foreign hosts;
+Lander lets us do it in Lisp.
