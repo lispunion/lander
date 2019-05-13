@@ -156,10 +156,10 @@
                    (cons (simple-property group 'name symbol?)
                          (tab 'hosts
                               (gen-hosts-yml-group-hosts
-                               (complex-property group 'hosts))
+                               (or (complex-property group 'hosts) '()))
                               'vars
                               (gen-hosts-yml-vars
-                               (complex-property group 'vars))))))
+                               (or (complex-property group 'vars) '()))))))
                groups)))))
 
 (define (gen-task-hash-table task)
