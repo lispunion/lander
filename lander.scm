@@ -191,7 +191,7 @@
         (yaml-document
          (tab 'hosts (complex-property playbook 'hosts)
               'become (simple-property playbook 'become symbol?)
-              'roles (complex-property playbook 'roles)))))))
+              'roles (map identifier (complex-property playbook 'roles))))))))
 
 (define (gen-ansible form)
   (let ((ansible (the-object 'ansible form)))
