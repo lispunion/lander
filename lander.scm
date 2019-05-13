@@ -61,25 +61,37 @@
   (display (make-string (* 2 nest) #\space))
   (apply line xs))
 
-(define (yaml-simple? x)
-  (not (or (hash-table? x) (list? x))))
+(define (yaml-simple x)
+  (cond ((or (and (hash-table? x) (not (= 0 (hash-table-size x))))
+             (and (list? x) (not (null? x))))
+         #f)
+        ((hash-table? x)
+         "{}")
+        ((null? x)
+         "[]")
+        (else
+         x)))
 
 (define (yaml-object x nest)
-  (cond ((list? x)
+  (cond ((null? x)
+         (indented-line nest "- " val ": []"))
+        ((list? x)
          (for-each (lambda (val)
-                     (if (yaml-simple? val)
-                         (indented-line nest "- " val)
-                         (begin (indented-line nest "- ")
-                                (yaml-object val (+ nest 1)))))
+                     (let ((simple (yaml-simple val)))
+                       (if simple
+                           (indented-line nest "- " simple)
+                           (begin (indented-line nest "- ")
+                                  (yaml-object val (+ nest 1))))))
                    x))
         ((hash-table? x)
          (hash-table-walk
           x (lambda (key val)
               (let ((key key))
-                (if (yaml-simple? val)
-                    (indented-line nest key ": " val)
-                    (begin (indented-line nest key ":")
-                           (yaml-object val (+ nest 1))))))))))
+                (let ((simple (yaml-simple val)))
+                  (if simple
+                      (indented-line nest key ": " simple)
+                      (begin (indented-line nest key ":")
+                             (yaml-object val (+ nest 1)))))))))))
 
 (define (yaml-document x)
   (line "---")
@@ -152,14 +164,13 @@
     (lambda ()
       (yaml-document
        (maptab (lambda (group)
-                 (let ((group (the-object 'group group)))
+                 (let ((group (the-object 'group group))
+                       (hosts (gen-hosts-yml-group-hosts
+                               (or (complex-property group 'hosts) '())))
+                       (vars  (gen-hosts-yml-vars
+                               (or (complex-property group 'vars) '()))))
                    (cons (simple-property group 'name symbol?)
-                         (tab 'hosts
-                              (gen-hosts-yml-group-hosts
-                               (or (complex-property group 'hosts) '()))
-                              'vars
-                              (gen-hosts-yml-vars
-                               (or (complex-property group 'vars) '()))))))
+                         (tab 'hosts hosts 'vars vars))))
                groups)))))
 
 (define (gen-task-hash-table task)
