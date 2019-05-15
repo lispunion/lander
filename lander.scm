@@ -80,7 +80,7 @@
                      (let ((simple (yaml-simple val)))
                        (if simple
                            (indented-line nest "- " simple)
-                           (begin (indented-line nest "- ")
+                           (begin (indented-line nest "-")
                                   (yaml-object val (+ nest 1))))))
                    x))
         ((hash-table? x)
