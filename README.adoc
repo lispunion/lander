@@ -7,3 +7,6 @@ use your favorite Lisp dialect to generate it.
 The name was inspired by space exploration and Lisp's mascot, the
 alien. Ansible generates scripts and lands them on foreign hosts;
 Lander lets us do it in Lisp.
+
+The file `hello.lisp` contains a Hello World configuration that
+creates a text file in `/tmp` on localhost. Run `hello.sh` to try it.
