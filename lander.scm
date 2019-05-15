@@ -194,7 +194,8 @@
                        (module-params (cdr module-and-params)))
                   (tab 'name (simple-property task 'title string?)
                        module-name (gen-module-params module-params))))
-              (complex-property role 'tasks)))))))
+              (or (complex-property role 'tasks)
+                  (error "Role has no (tasks ...)"))))))))
 
 (define (gen-playbook-yml playbook)
   (let ((playbook (the-object 'playbook playbook)))
