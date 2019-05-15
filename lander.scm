@@ -173,11 +173,11 @@
                          (tab 'hosts hosts 'vars vars))))
                groups)))))
 
-(define (gen-task-hash-table task)
-  (maptab (lambda (subtask)
-            (cons (identifier (car subtask))
-                  (second subtask)))
-          (cdr task)))
+(define (gen-module-params module-params)
+  (maptab (lambda (module-param)
+            (cons (identifier (car module-param))
+                  (second module-param)))
+          module-params))
 
 (define (gen-role-directory role)
   (let* ((role (the-object 'role role))
@@ -189,9 +189,11 @@
         (yaml-document
          (map (lambda (task)
                 (let* ((task (the-object 'task task))
-                       (job (second task)))
+                       (module-and-params (second task))
+                       (module-name (car module-and-params))
+                       (module-params (cdr module-and-params)))
                   (tab 'name (simple-property task 'title string?)
-                       (car job) (gen-task-hash-table job))))
+                       module-name (gen-module-params module-params))))
               (complex-property role 'tasks)))))))
 
 (define (gen-playbook-yml playbook)
