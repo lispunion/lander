@@ -175,7 +175,8 @@
 
 (define (gen-task-hash-table task)
   (maptab (lambda (subtask)
-            (cons (car subtask) (second subtask)))
+            (cons (identifier (car subtask))
+                  (second subtask)))
           (cdr task)))
 
 (define (gen-role-directory role)
