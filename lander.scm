@@ -21,6 +21,12 @@
   (newline (current-error-port))
   x)
 
+(define (alist->plist xs)
+  (let loop ((xs xs) (acc '()))
+    (if (null? xs)
+        acc
+        (loop (cdr xs) (append acc (list (caar xs) (cdar xs)))))))
+
 (define (tab . xs)
   (let ((ht (make-hash-table)))
     (let loop ((xs xs))
