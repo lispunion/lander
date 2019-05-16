@@ -185,21 +185,23 @@
                   (second module-param)))
           module-params))
 
+(define (gen-module-invocation invocation)
+  (let* ((title (simple-property invocation 'title string?))
+         (module-and-params (second invocation))
+         (module-name (car module-and-params))
+         (module-params (cdr module-and-params))
+         (other-things (cddr invocation)))
+    (apply tab
+           'name title
+           module-name (gen-module-params module-params)
+           (alist->plist other-things))))
+
 (define (gen-role-tasks-directory tasks-dir tasks-property)
   (create-directory* tasks-dir)
   (with-output-to-file (path-join tasks-dir "main.yml")
     (lambda ()
       (yaml-document
-       (map (lambda (task)
-              (let* ((task (the-object 'task task))
-                     (module-and-params (second task))
-                     (module-name (car module-and-params))
-                     (module-params (cdr module-and-params))
-                     (other-things (cddr task)))
-                (apply tab
-                       'name (simple-property task 'title string?)
-                       module-name (gen-module-params module-params)
-                       (alist->plist other-things))))
+       (map (lambda (task) (gen-module-invocation (the-object 'task task)))
             tasks-property)))))
 
 (define (gen-role-directory role)
