@@ -185,26 +185,30 @@
                   (second module-param)))
           module-params))
 
+(define (gen-role-tasks-directory tasks-dir tasks-property)
+  (create-directory* tasks-dir)
+  (with-output-to-file (path-join tasks-dir "main.yml")
+    (lambda ()
+      (yaml-document
+       (map (lambda (task)
+              (let* ((task (the-object 'task task))
+                     (module-and-params (second task))
+                     (module-name (car module-and-params))
+                     (module-params (cdr module-and-params))
+                     (other-things (cddr task)))
+                (apply tab
+                       'name (simple-property task 'title string?)
+                       module-name (gen-module-params module-params)
+                       (alist->plist other-things))))
+            tasks-property)))))
+
 (define (gen-role-directory role)
   (let* ((role (the-object 'role role))
          (role-name (simple-property role 'name symbol?))
-         (tasks (path-join "roles" (identifier role-name) "tasks")))
-    (create-directory* tasks)
-    (with-output-to-file (path-join tasks "main.yml")
-      (lambda ()
-        (yaml-document
-         (map (lambda (task)
-                (let* ((task (the-object 'task task))
-                       (module-and-params (second task))
-                       (module-name (car module-and-params))
-                       (module-params (cdr module-and-params))
-                       (other-things (cddr task)))
-                  (apply tab
-                         'name (simple-property task 'title string?)
-                         module-name (gen-module-params module-params)
-                         (alist->plist other-things))))
-              (or (complex-property role 'tasks)
-                  (error "Role has no (tasks ...)"))))))))
+         (tasks-dir (path-join "roles" (identifier role-name) "tasks")))
+    (gen-role-tasks-directory
+     tasks-dir (or (complex-property role 'tasks)
+                   (error "Role has no (tasks ...)")))))
 
 (define (gen-playbook-yml playbook)
   (let ((playbook (the-object 'playbook playbook)))
