@@ -197,9 +197,12 @@
                 (let* ((task (the-object 'task task))
                        (module-and-params (second task))
                        (module-name (car module-and-params))
-                       (module-params (cdr module-and-params)))
-                  (tab 'name (simple-property task 'title string?)
-                       module-name (gen-module-params module-params))))
+                       (module-params (cdr module-and-params))
+                       (other-things (cddr task)))
+                  (apply tab
+                         'name (simple-property task 'title string?)
+                         module-name (gen-module-params module-params)
+                         (alist->plist other-things))))
               (or (complex-property role 'tasks)
                   (error "Role has no (tasks ...)"))))))))
 
