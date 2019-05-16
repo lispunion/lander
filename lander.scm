@@ -204,13 +204,25 @@
        (map (lambda (task) (gen-module-invocation (the-object 'task task)))
             tasks-property)))))
 
+(define (gen-role-handlers-directory handlers-dir handlers-property)
+  (create-directory* handlers-dir)
+  (with-output-to-file (path-join handlers-dir "main.yml")
+    (lambda ()
+      (yaml-document
+       (map (lambda (handler)
+              (gen-module-invocation (the-object 'handler handler)))
+            handlers-property)))))
+
 (define (gen-role-directory role)
   (let* ((role (the-object 'role role))
          (role-name (simple-property role 'name symbol?))
-         (tasks-dir (path-join "roles" (identifier role-name) "tasks")))
+         (tasks-dir (path-join "roles" (identifier role-name) "tasks"))
+         (handlers-dir (path-join "roles" (identifier role-name) "handlers")))
     (gen-role-tasks-directory
      tasks-dir (or (complex-property role 'tasks)
-                   (error "Role has no (tasks ...)")))))
+                   (error "Role has no (tasks ...)")))
+    (let ((handlers (complex-property role 'handlers)))
+      (when handlers (gen-role-handlers-directory handlers-dir handlers)))))
 
 (define (gen-playbook-yml playbook)
   (let ((playbook (the-object 'playbook playbook)))
