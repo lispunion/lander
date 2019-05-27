@@ -80,7 +80,7 @@
 
 (define (yaml-object x nest)
   (cond ((null? x)
-         (indented-line nest "- " val ": []"))
+         (indented-line nest "- []"))
         ((list? x)
          (for-each (lambda (val)
                      (let ((simple (yaml-simple val)))
