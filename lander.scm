@@ -1,3 +1,10 @@
+#! /usr/bin/env lila
+
+#;
+(declare-file
+  (language scheme 7)
+  (implementation chibi gauche))
+
 (cond-expand
   (chibi
    (import (scheme base)
