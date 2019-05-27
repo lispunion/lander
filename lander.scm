@@ -160,7 +160,7 @@
 (define (gen-hosts-yml-group-hosts hosts)
   (maptab (lambda (host)
             (let ((host (the-object 'host host)))
-              (cons (simple-property host 'name symbol?)
+              (cons (identifier (simple-property host 'name symbol?))
                     (gen-hosts-yml-vars
                      (complex-property host 'vars)))))
           hosts))
@@ -170,12 +170,12 @@
     (lambda ()
       (yaml-document
        (maptab (lambda (group)
-                 (let ((group (the-object 'group group))
-                       (hosts (gen-hosts-yml-group-hosts
-                               (or (complex-property group 'hosts) '())))
-                       (vars  (gen-hosts-yml-vars
-                               (or (complex-property group 'vars) '()))))
-                   (cons (simple-property group 'name symbol?)
+                 (let* ((group (the-object 'group group))
+                        (hosts (gen-hosts-yml-group-hosts
+                                (or (complex-property group 'hosts) '())))
+                        (vars  (gen-hosts-yml-vars
+                                (or (complex-property group 'vars) '()))))
+                   (cons (identifier (simple-property group 'name symbol?))
                          (tab 'hosts hosts 'vars vars))))
                groups)))))
 
@@ -232,7 +232,7 @@
       (lambda ()
         (yaml-document
          (list
-          (tab 'hosts (complex-property playbook 'hosts)
+          (tab 'hosts (map identifier (complex-property playbook 'hosts))
                'become (simple-property playbook 'become symbol?)
                'roles (map identifier (complex-property playbook
                                                         'roles)))))))))
