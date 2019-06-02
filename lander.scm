@@ -19,7 +19,8 @@
   (gauche
    (use srfi-1)
    (use srfi-69)
-   (use file.util)))
+   (use file.util)
+   (use gauche.parameter)))
 
 ;;;;
 
@@ -74,6 +75,30 @@
   (display (make-string (* 2 nest) #\space))
   (apply line xs))
 
+(define (write-unicode-escape char)
+  (write-string "\\U")
+  (let ((hex (number->string (char->integer char) 16)))
+    (let loop ((pad (- 8 (string-length hex))))
+      (when (> pad 0) (write-char #\0) (loop (- pad 1))))
+    (write-string hex)))
+
+(define (yaml-quoted-string s)
+  (let ((n (string-length s)))
+    (parameterize ((current-output-port (open-output-string)))
+      (write-char #\")
+      (let loop ((i 0))
+        (when (< i n)
+          (let ((c (string-ref s i)))
+            (cond ((char-alphabetic? c) (write-char c))
+                  ((char-numeric? c)    (write-char c))
+                  ((char=? c #\space)   (write-char c))
+                  ((char=? c #\newline) (write-char #\\) (write-char #\n))
+                  ((char=? c #\tab)     (write-char #\\) (write-char #\t))
+                  (else (write-unicode-escape c))))
+          (loop (+ i 1))))
+      (write-char #\")
+      (get-output-string (current-output-port)))))
+
 (define (yaml-simple x)
   (cond ((or (and (hash-table? x) (not (= 0 (hash-table-size x))))
              (and (list? x) (not (null? x))))
@@ -82,6 +107,8 @@
          "{}")
         ((null? x)
          "[]")
+        ((string? x)
+         (yaml-quoted-string x))
         (else
          x)))
 
