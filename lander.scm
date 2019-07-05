@@ -227,7 +227,7 @@
          (other-things (cddr invocation)))
     (apply tab
            'name title
-           module-name (gen-module-params module-params)
+           (identifier module-name) (gen-module-params module-params)
            (alist->plist other-things))))
 
 (define (gen-role-tasks-directory tasks-dir tasks-property)
