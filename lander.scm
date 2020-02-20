@@ -1,5 +1,4 @@
 #! /usr/bin/env lila
-
 #;
 (declare-file
   (language r7rs)
