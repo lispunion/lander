@@ -2,25 +2,25 @@
 
 #;
 (declare-file
-  (language scheme 7)
-  (implementation chibi gauche))
+  (language r7rs)
+  (implementations gauche chibi))
+
+(import (scheme base)
+        (scheme char)
+        (scheme file)
+        (scheme cxr)
+        (scheme read)
+        (scheme write))
 
 (cond-expand
   (chibi
-   (import (scheme base)
-           (scheme char)
-           (scheme file)
-           (scheme cxr)
-           (scheme read)
-           (scheme write)
-           (srfi 1)
+   (import (srfi 1)
            (srfi 69)
            (chibi filesystem)))
   (gauche
-   (use srfi-1)
-   (use srfi-69)
-   (use file.util)
-   (use gauche.parameter)))
+   (import (srfi 1)
+           (srfi 69)
+           (file util))))
 
 ;;;;
 
