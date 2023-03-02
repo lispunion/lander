@@ -23,6 +23,13 @@
 
 ;;;;
 
+(define (read-all)
+  (let loop ((xs '()))
+    (let ((x (read)))
+      (if (eof-object? x)
+          (reverse xs)
+          (loop (cons x xs))))))
+
 (define (show x)
   (write x (current-error-port))
   (newline (current-error-port))
@@ -270,11 +277,10 @@
                'roles (map identifier (complex-property playbook
                                                         'roles)))))))))
 
-(define (gen-ansible form)
-  (let ((ansible (the-object 'ansible form)))
-    (gen-ansible-cfg (complex-property ansible 'options))
-    (gen-hosts-yml (complex-property ansible 'groups))
-    (for-each gen-role-directory (complex-property ansible 'roles))
-    (for-each gen-playbook-yml (complex-property ansible 'playbooks))))
+(define (gen-ansible ansible)
+  (gen-ansible-cfg (complex-property ansible 'options))
+  (gen-hosts-yml (complex-property ansible 'groups))
+  (for-each gen-role-directory (complex-property ansible 'roles))
+  (for-each gen-playbook-yml (complex-property ansible 'playbooks)))
 
-(gen-ansible (read))
+(gen-ansible (read-all))
