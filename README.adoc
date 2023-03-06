@@ -1,5 +1,8 @@
 = Lander
 
+NOTE: **This project has been superseded by
+https://github.com/lassik/sensible[Sensible].**
+
 Lander generates a complete Ansible configuration from a Lisp form.
 How you obtain the Lisp form is up to you. You can write it by hand or
 use your favorite Lisp dialect to generate it.
